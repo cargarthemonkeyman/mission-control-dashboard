@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --mission-bg: #0f172a;
+  --mission-surface: #1e293b;
+  --mission-border: #334155;
+  --mission-accent: #06b6d4;
+  --mission-success: #10b981;
+  --mission-warning: #f59e0b;
+  --mission-danger: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--mission-bg);
+  color: #f1f5f9;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--mission-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--mission-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(6, 182, 212, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.8);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
