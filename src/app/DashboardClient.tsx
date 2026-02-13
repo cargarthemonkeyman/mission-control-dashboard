@@ -7,7 +7,7 @@ import { DashboardStats } from "@/components/DashboardStats";
 import { LayoutDashboard, Calendar, Search } from "lucide-react";
 import Link from "next/link";
 
-export default function Dashboard() {
+export default function DashboardClient() {
   return (
     <div className="min-h-screen bg-mission-bg">
       {/* Header */}
