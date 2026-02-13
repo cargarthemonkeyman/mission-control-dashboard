@@ -9,7 +9,7 @@ function SearchContent() {
   return <GlobalSearch />;
 }
 
-export default function SearchPage() {
+export function SearchClient() {
   return (
     <div className="min-h-screen bg-mission-bg">
       {/* Header */}

@@ -5,7 +5,7 @@ import { GlobalSearch } from "@/components/GlobalSearch";
 import { LayoutDashboard, Calendar, Search } from "lucide-react";
 import Link from "next/link";
 
-export default function CalendarPage() {
+export function CalendarClient() {
   return (
     <div className="min-h-screen bg-mission-bg">
       {/* Header */}
