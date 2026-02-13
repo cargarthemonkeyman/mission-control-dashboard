@@ -1,7 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { useWeekView } from "@/lib/useData";
 import {
   format,
   startOfWeek,
@@ -26,7 +25,7 @@ interface CalendarViewProps {
 
 export function CalendarView({ className, compact = false }: CalendarViewProps) {
   const [currentWeek, setCurrentWeek] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const tasks = useQuery(api.scheduledTasks.getWeekView, { weekStart: currentWeek.getTime() });
+  const { tasks, loading } = useWeekView(currentWeek.getTime());
 
   const weekDays = useMemo(() => {
     return DAYS.map((_, index) => addDays(currentWeek, index));
@@ -46,7 +45,7 @@ export function CalendarView({ className, compact = false }: CalendarViewProps) 
   };
 
   const getTasksForDay = (day: Date) => {
-    return (tasks || []).filter((task) => isSameDay(new Date(task.scheduledFor), day));
+    return tasks.filter((task) => isSameDay(new Date(task.scheduledFor), day));
   };
 
   const statusIcons = {
@@ -158,108 +157,114 @@ export function CalendarView({ className, compact = false }: CalendarViewProps) 
 
       {/* Calendar Grid */}
       <div className="flex-1 overflow-auto">
-        <div className="min-w-[800px]">
-          {/* Days Header */}
-          <div className="grid grid-cols-8 border-b border-mission-border sticky top-0 bg-mission-surface z-10">
-            <div className="p-3 border-r border-mission-border">
-              <span className="text-xs font-medium text-mission-muted">Time</span>
-            </div>
-            {weekDays.map((day, index) => {
-              const isToday = isSameDay(day, new Date());
-              return (
-                <div
-                  key={index}
-                  className={cn(
-                    "p-3 text-center border-r border-mission-border last:border-r-0",
-                    isToday && "bg-mission-accent/5"
-                  )}
-                >
-                  <div className={cn(
-                    "text-sm font-medium",
-                    isToday ? "text-mission-accent" : "text-mission-text"
-                  )}>
-                    {DAYS[index]}
-                  </div>
-                  <div className={cn(
-                    "text-xs mt-0.5",
-                    isToday ? "text-mission-accent" : "text-mission-muted"
-                  )}>
-                    {format(day, "MMM d")}
-                  </div>
-                </div>
-              );
-            })}
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="w-8 h-8 animate-spin text-mission-accent" />
           </div>
-
-          {/* Time Grid */}
-          <div className="grid grid-cols-8">
-            {/* Time Labels */}
-            <div className="border-r border-mission-border">
-              {HOURS.map((hour) => (
-                <div
-                  key={hour}
-                  className="h-[60px] border-b border-mission-border/30 px-2 py-1"
-                >
-                  <span className="text-xs text-mission-muted">
-                    {format(addHours(startOfDay(new Date()), hour), "h a")}
-                  </span>
-                </div>
-              ))}
+        ) : (
+          <div className="min-w-[800px]">
+            {/* Days Header */}
+            <div className="grid grid-cols-8 border-b border-mission-border sticky top-0 bg-mission-surface z-10">
+              <div className="p-3 border-r border-mission-border">
+                <span className="text-xs font-medium text-mission-muted">Time</span>
+              </div>
+              {weekDays.map((day, index) => {
+                const isToday = isSameDay(day, new Date());
+                return (
+                  <div
+                    key={index}
+                    className={cn(
+                      "p-3 text-center border-r border-mission-border last:border-r-0",
+                      isToday && "bg-mission-accent/5"
+                    )}
+                  >
+                    <div className={cn(
+                      "text-sm font-medium",
+                      isToday ? "text-mission-accent" : "text-mission-text"
+                    )}>
+                      {DAYS[index]}
+                    </div>
+                    <div className={cn(
+                      "text-xs mt-0.5",
+                      isToday ? "text-mission-accent" : "text-mission-muted"
+                    )}>
+                      {format(day, "MMM d")}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Day Columns */}
-            {weekDays.map((day, dayIndex) => {
-              const dayTasks = getTasksForDay(day);
-              const isToday = isSameDay(day, new Date());
-              
-              return (
-                <div
-                  key={dayIndex}
-                  className={cn(
-                    "relative border-r border-mission-border last:border-r-0",
-                    isToday && "bg-mission-accent/5"
-                  )}
-                >
-                  {HOURS.map((hour) => (
-                    <div
-                      key={hour}
-                      className="h-[60px] border-b border-mission-border/30"
-                    />
-                  ))}
+            {/* Time Grid */}
+            <div className="grid grid-cols-8">
+              {/* Time Labels */}
+              <div className="border-r border-mission-border">
+                {HOURS.map((hour) => (
+                  <div
+                    key={hour}
+                    className="h-[60px] border-b border-mission-border/30 px-2 py-1"
+                  >
+                    <span className="text-xs text-mission-muted">
+                      {format(addHours(startOfDay(new Date()), hour), "h a")}
+                    </span>
+                  </div>
+                ))}
+              </div>
 
-                  {dayTasks.map((task) => {
-                    const { top, height } = getTaskPosition(task);
-                    return (
+              {/* Day Columns */}
+              {weekDays.map((day, dayIndex) => {
+                const dayTasks = getTasksForDay(day);
+                const isToday = isSameDay(day, new Date());
+                
+                return (
+                  <div
+                    key={dayIndex}
+                    className={cn(
+                      "relative border-r border-mission-border last:border-r-0",
+                      isToday && "bg-mission-accent/5"
+                    )}
+                  >
+                    {HOURS.map((hour) => (
                       <div
-                        key={task._id}
-                        className={cn(
-                          "absolute left-1 right-1 rounded border-l-2 p-2 cursor-pointer hover:opacity-90 transition-opacity overflow-hidden",
-                          statusColors[task.status]
-                        )}
-                        style={{
-                          top: `${top}px`,
-                          height: `${Math.max(height, 30)}px`,
-                        }}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          {statusIcons[task.status]}
-                          <span className="text-xs font-medium text-mission-text truncate">
-                            {task.title}
-                          </span>
+                        key={hour}
+                        className="h-[60px] border-b border-mission-border/30"
+                      />
+                    ))}
+
+                    {dayTasks.map((task) => {
+                      const { top, height } = getTaskPosition(task);
+                      return (
+                        <div
+                          key={task._id}
+                          className={cn(
+                            "absolute left-1 right-1 rounded border-l-2 p-2 cursor-pointer hover:opacity-90 transition-opacity overflow-hidden",
+                            statusColors[task.status as keyof typeof statusColors]
+                          )}
+                          style={{
+                            top: `${top}px`,
+                            height: `${Math.max(height, 30)}px`,
+                          }}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            {statusIcons[task.status as keyof typeof statusIcons]}
+                            <span className="text-xs font-medium text-mission-text truncate">
+                              {task.title}
+                            </span>
+                          </div>
+                          {height > 40 && task.description && (
+                            <p className="text-[10px] text-mission-muted mt-1 line-clamp-2">
+                              {task.description}
+                            </p>
+                          )}
                         </div>
-                        {height > 40 && task.description && (
-                          <p className="text-[10px] text-mission-muted mt-1 line-clamp-2">
-                            {task.description}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { useGlobalSearch } from "@/lib/useData";
 import { Search, X, Calendar, Activity, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -25,10 +24,7 @@ export function GlobalSearch({ className, compact = false }: GlobalSearchProps) 
     return () => clearTimeout(timer);
   }, [query]);
 
-  const searchResults = useQuery(
-    api.search.globalSearch,
-    debouncedQuery.length >= 2 ? { query: debouncedQuery, limit: 20 } : "skip"
-  );
+  const { activities, tasks, totalResults, loading } = useGlobalSearch(debouncedQuery);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
@@ -81,23 +77,23 @@ export function GlobalSearch({ className, compact = false }: GlobalSearchProps) 
 
         {isOpen && debouncedQuery.length >= 2 && (
           <div className="absolute top-full left-0 right-0 mt-2 bg-mission-surface border border-mission-border rounded-lg shadow-xl z-50 max-h-[400px] overflow-auto">
-            {searchResults === undefined ? (
+            {loading ? (
               <div className="p-4 text-center">
                 <Loader2 className="w-5 h-5 animate-spin mx-auto text-mission-accent" />
               </div>
-            ) : searchResults.totalResults === 0 ? (
+            ) : totalResults === 0 ? (
               <div className="p-4 text-center text-mission-muted">
                 <Search className="w-5 h-5 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No results found</p>
               </div>
             ) : (
               <>
-                {searchResults.activities.length > 0 && (
+                {activities.length > 0 && (
                   <div className="p-2">
                     <h4 className="text-xs font-medium text-mission-muted uppercase tracking-wide px-2 py-1">
-                      Activities ({searchResults.activities.length})
+                      Activities ({activities.length})
                     </h4>
-                    {searchResults.activities.slice(0, 5).map((activity) => (
+                    {activities.slice(0, 5).map((activity) => (
                       <div
                         key={activity._id}
                         className="px-2 py-2 hover:bg-mission-bg/50 rounded-lg cursor-pointer"
@@ -118,12 +114,12 @@ export function GlobalSearch({ className, compact = false }: GlobalSearchProps) 
                   </div>
                 )}
 
-                {searchResults.tasks.length > 0 && (
+                {tasks.length > 0 && (
                   <div className="p-2 border-t border-mission-border/50">
                     <h4 className="text-xs font-medium text-mission-muted uppercase tracking-wide px-2 py-1">
-                      Tasks ({searchResults.tasks.length})
+                      Tasks ({tasks.length})
                     </h4>
-                    {searchResults.tasks.slice(0, 5).map((task) => (
+                    {tasks.slice(0, 5).map((task) => (
                       <div
                         key={task._id}
                         className="px-2 py-2 hover:bg-mission-bg/50 rounded-lg cursor-pointer"
@@ -183,11 +179,11 @@ export function GlobalSearch({ className, compact = false }: GlobalSearchProps) 
 
       {debouncedQuery.length >= 2 && (
         <div className="space-y-6">
-          {searchResults === undefined ? (
+          {loading ? (
             <div className="p-12 text-center">
               <Loader2 className="w-8 h-8 animate-spin mx-auto text-mission-accent" />
             </div>
-          ) : searchResults.totalResults === 0 ? (
+          ) : totalResults === 0 ? (
             <div className="p-12 text-center text-mission-muted">
               <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p className="text-lg">No results found for &quot;{debouncedQuery}&quot;</p>
@@ -195,17 +191,17 @@ export function GlobalSearch({ className, compact = false }: GlobalSearchProps) 
           ) : (
             <>
               <p className="text-mission-muted">
-                Found {searchResults.totalResults} results
+                Found {totalResults} results
               </p>
 
-              {searchResults.activities.length > 0 && (
+              {activities.length > 0 && (
                 <section>
                   <h2 className="text-lg font-semibold text-mission-text mb-4 flex items-center gap-2">
                     <Activity className="w-5 h-5 text-mission-accent" />
-                    Activities ({searchResults.activities.length})
+                    Activities ({activities.length})
                   </h2>
                   <div className="space-y-2">
-                    {searchResults.activities.map((activity) => (
+                    {activities.map((activity) => (
                       <div
                         key={activity._id}
                         className="p-4 bg-mission-surface border border-mission-border rounded-lg hover:border-mission-accent/50 transition-colors"
@@ -226,14 +222,14 @@ export function GlobalSearch({ className, compact = false }: GlobalSearchProps) 
                 </section>
               )}
 
-              {searchResults.tasks.length > 0 && (
+              {tasks.length > 0 && (
                 <section>
                   <h2 className="text-lg font-semibold text-mission-text mb-4 flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-emerald-400" />
-                    Scheduled Tasks ({searchResults.tasks.length})
+                    Scheduled Tasks ({tasks.length})
                   </h2>
                   <div className="space-y-2">
-                    {searchResults.tasks.map((task) => (
+                    {tasks.map((task) => (
                       <div
                         key={task._id}
                         className="p-4 bg-mission-surface border border-mission-border rounded-lg hover:border-emerald-400/50 transition-colors"
