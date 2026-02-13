@@ -26,7 +26,9 @@ export function DashboardStats() {
         const response = await fetch('/api/stats');
         
         if (response.ok) {
-          const data = await response.json();
+          const result = await response.json();
+          // Convex API returns {status, value} structure
+          const data = result.value || result;
           if (data) {
             setStats(data);
           }

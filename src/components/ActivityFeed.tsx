@@ -80,8 +80,10 @@ export function ActivityFeed({ limit = 50, showHeader = true, className }: Activ
       const response = await fetch('/api/activities');
       
       if (response.ok) {
-        const data = await response.json();
-        if (data && Array.isArray(data)) {
+        const result = await response.json();
+        // Convex API returns {status, value} structure
+        const data = result.value || result;
+        if (Array.isArray(data)) {
           setActivities(data);
           setLastUpdated(new Date());
         }
