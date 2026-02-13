@@ -1,7 +1,5 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
 import { useEffect, useState } from "react";
 
 // Demo data fallback
@@ -30,28 +28,15 @@ const demoActivities = [
     agent: "Ray",
     source: "VS Code",
   },
+  {
+    _id: "4",
+    type: "scheduled_task_created",
+    description: "Review Mission Control Dashboard scheduled",
+    timestamp: Date.now() - 1000 * 60 * 2,
+    agent: "Ray",
+    source: "Mission Control",
+  },
 ];
-
-export function useActivities(limit: number = 50) {
-  const convexActivities = useQuery(api.activities.getAll, { limit });
-  const [useDemo, setUseDemo] = useState(false);
-
-  useEffect(() => {
-    // If convex returns undefined after a timeout, switch to demo
-    const timer = setTimeout(() => {
-      if (convexActivities === undefined) {
-        setUseDemo(true);
-      }
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [convexActivities]);
-
-  return {
-    activities: useDemo ? demoActivities.slice(0, limit) : (convexActivities || []),
-    loading: !useDemo && convexActivities === undefined,
-    useDemo,
-  };
-}
 
 const demoTasks = [
   {
@@ -74,117 +59,219 @@ const demoTasks = [
   },
 ];
 
-export function useScheduledTasks() {
-  const convexTasks = useQuery(api.scheduledTasks.getAll, {});
-  const [useDemo, setUseDemo] = useState(false);
+export function useActivities(limit: number = 50) {
+  const [activities, setActivities] = useState(demoActivities.slice(0, limit));
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (convexTasks === undefined) {
-        setUseDemo(true);
+    // Try to fetch from Convex API directly
+    const fetchActivities = async () => {
+      try {
+        const response = await fetch('https://flexible-dolphin-499.convex.cloud/api/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            path: 'activities:getAll',
+            args: { limit }
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.length > 0) {
+            setActivities(data);
+          }
+        }
+      } catch (e) {
+        // Keep demo data on error
+        console.log('Using demo data');
+      } finally {
+        setLoading(false);
       }
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [convexTasks]);
+    };
 
-  return {
-    tasks: useDemo ? demoTasks : (convexTasks || []),
-    loading: !useDemo && convexTasks === undefined,
-    useDemo,
-  };
+    fetchActivities();
+    const interval = setInterval(fetchActivities, 5000);
+    return () => clearInterval(interval);
+  }, [limit]);
+
+  return { activities, loading };
+}
+
+export function useScheduledTasks() {
+  const [tasks, setTasks] = useState(demoTasks);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const response = await fetch('https://flexible-dolphin-499.convex.cloud/api/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            path: 'scheduledTasks:getAll',
+            args: {}
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.length > 0) {
+            setTasks(data);
+          }
+        }
+      } catch (e) {
+        console.log('Using demo tasks');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, []);
+
+  return { tasks, loading };
 }
 
 export function useActivityStats() {
-  const convexStats = useQuery(api.activities.getStats);
-  const [useDemo, setUseDemo] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (convexStats === undefined) {
-        setUseDemo(true);
-      }
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [convexStats]);
-
-  const demoStats = {
-    total: 3,
-    last24h: 3,
-    last7d: 3,
+  const [stats, setStats] = useState({
+    total: 4,
+    last24h: 4,
+    last7d: 4,
     byType: {
       system_event: 1,
       task_completed: 1,
       file_created: 1,
+      scheduled_task_created: 1,
     },
-  };
+  });
+  const [loading, setLoading] = useState(true);
 
-  return {
-    stats: useDemo ? demoStats : convexStats,
-    loading: !useDemo && convexStats === undefined,
-    useDemo,
-  };
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('https://flexible-dolphin-499.convex.cloud/api/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            path: 'activities:getStats',
+            args: {}
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data) {
+            setStats(data);
+          }
+        }
+      } catch (e) {
+        console.log('Using demo stats');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  return { stats, loading };
 }
 
 export function useGlobalSearch(query: string) {
-  const convexResults = useQuery(
-    api.search.globalSearch,
-    query.length >= 2 ? { query, limit: 20 } : "skip"
-  );
-  const [useDemo, setUseDemo] = useState(false);
+  const [results, setResults] = useState({
+    activities: [] as typeof demoActivities,
+    tasks: [] as typeof demoTasks,
+    totalResults: 0,
+  });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (query.length >= 2 && convexResults === undefined) {
-        setUseDemo(true);
-      }
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [convexResults, query]);
-
-  const demoSearch = () => {
     if (!query || query.length < 2) {
-      return { activities: [], tasks: [], totalResults: 0 };
+      setResults({ activities: [], tasks: [], totalResults: 0 });
+      return;
     }
-    const filteredActivities = demoActivities.filter(a =>
-      a.description.toLowerCase().includes(query.toLowerCase())
-    );
-    const filteredTasks = demoTasks.filter(t =>
-      t.title.toLowerCase().includes(query.toLowerCase()) ||
-      (t.description && t.description.toLowerCase().includes(query.toLowerCase()))
-    );
-    return {
-      activities: filteredActivities,
-      tasks: filteredTasks,
-      totalResults: filteredActivities.length + filteredTasks.length,
+
+    setLoading(true);
+    
+    const search = async () => {
+      try {
+        const response = await fetch('https://flexible-dolphin-499.convex.cloud/api/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            path: 'search:globalSearch',
+            args: { query, limit: 20 }
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data) {
+            setResults(data);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (e) {
+        // Fall through to demo search
+      }
+      
+      // Demo search fallback
+      const filteredActivities = demoActivities.filter(a =>
+        a.description.toLowerCase().includes(query.toLowerCase()) ||
+        a.type.toLowerCase().includes(query.toLowerCase())
+      );
+      const filteredTasks = demoTasks.filter(t =>
+        t.title.toLowerCase().includes(query.toLowerCase()) ||
+        (t.description && t.description.toLowerCase().includes(query.toLowerCase()))
+      );
+      setResults({
+        activities: filteredActivities,
+        tasks: filteredTasks,
+        totalResults: filteredActivities.length + filteredTasks.length,
+      });
+      setLoading(false);
     };
-  };
 
-  const results = useDemo ? demoSearch() : (convexResults || { activities: [], tasks: [], totalResults: 0 });
+    const timer = setTimeout(search, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
 
-  return {
-    ...results,
-    loading: !useDemo && query.length >= 2 && convexResults === undefined,
-    useDemo,
-  };
+  return { ...results, loading };
 }
 
-// For week view in calendar
 export function useWeekView(weekStart: number) {
-  const convexTasks = useQuery(api.scheduledTasks.getWeekView, { weekStart });
-  const [useDemo, setUseDemo] = useState(false);
+  const [tasks, setTasks] = useState(demoTasks);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (convexTasks === undefined) {
-        setUseDemo(true);
+    const fetchTasks = async () => {
+      try {
+        const response = await fetch('https://flexible-dolphin-499.convex.cloud/api/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            path: 'scheduledTasks:getWeekView',
+            args: { weekStart }
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.length > 0) {
+            setTasks(data);
+          }
+        }
+      } catch (e) {
+        console.log('Using demo week view');
+      } finally {
+        setLoading(false);
       }
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [convexTasks]);
+    };
 
-  return {
-    tasks: useDemo ? demoTasks : (convexTasks || []),
-    loading: !useDemo && convexTasks === undefined,
-    useDemo,
-  };
+    fetchTasks();
+  }, [weekStart]);
+
+  return { tasks, loading };
 }
