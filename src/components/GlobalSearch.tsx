@@ -247,10 +247,10 @@ export function GlobalSearch({ className, compact = false }: GlobalSearchProps) 
                           </div>
                           <span className={cn(
                             "px-2 py-1 rounded-full text-xs font-medium",
-                            task.status === "completed" && "bg-emerald-400/10 text-emerald-400",
-                            task.status === "pending" && "bg-amber-400/10 text-amber-400",
-                            task.status === "in_progress" && "bg-cyan-400/10 text-cyan-400",
-                            task.status === "cancelled" && "bg-red-400/10 text-red-400"
+                            (task.status as string) === "completed" && "bg-emerald-400/10 text-emerald-400",
+                            (task.status as string) === "pending" && "bg-amber-400/10 text-amber-400",
+                            (task.status as string) === "in_progress" && "bg-cyan-400/10 text-cyan-400",
+                            (task.status as string) === "cancelled" && "bg-red-400/10 text-red-400"
                           )}>
                             {task.status}
                           </span>
