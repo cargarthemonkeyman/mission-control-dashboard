@@ -1,12 +1,47 @@
 "use client";
 
-import { useActivityStats, useScheduledTasks, useWeekView } from "@/lib/useData";
+import { useEffect, useState } from "react";
 import { Activity, Calendar, CheckCircle, Clock, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+interface Stats {
+  total: number;
+  last24h: number;
+  last7d: number;
+  byType: Record<string, number>;
+}
+
 export function DashboardStats() {
-  const { stats, loading } = useActivityStats();
-  const { tasks } = useScheduledTasks();
+  const [stats, setStats] = useState<Stats>({
+    total: 0,
+    last24h: 0,
+    last7d: 0,
+    byType: {},
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/stats');
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data) {
+            setStats(data);
+          }
+        }
+      } catch (e) {
+        console.log('Failed to fetch stats:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+    const interval = setInterval(fetchStats, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   if (loading) {
     return (
@@ -23,15 +58,15 @@ export function DashboardStats() {
   const cards = [
     {
       title: "Total Activities",
-      value: stats?.total ?? 0,
-      change: `+${stats?.last24h ?? 0} today`,
+      value: stats.total,
+      change: `+${stats.last24h} today`,
       icon: Activity,
       color: "text-mission-accent",
       bgColor: "bg-mission-accent/10",
     },
     {
       title: "This Week",
-      value: stats?.last7d ?? 0,
+      value: stats.last7d,
       change: "activities",
       icon: Clock,
       color: "text-purple-400",
@@ -39,7 +74,7 @@ export function DashboardStats() {
     },
     {
       title: "Upcoming Tasks",
-      value: tasks?.length ?? 0,
+      value: 0, // TODO: Add tasks API
       change: "scheduled",
       icon: Calendar,
       color: "text-emerald-400",
@@ -47,7 +82,7 @@ export function DashboardStats() {
     },
     {
       title: "Completed",
-      value: (stats?.byType as Record<string, number>)?.task_completed ?? 0,
+      value: stats.byType?.task_completed || 0,
       change: "tasks done",
       icon: CheckCircle,
       color: "text-amber-400",

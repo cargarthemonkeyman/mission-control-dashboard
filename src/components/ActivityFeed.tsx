@@ -1,6 +1,6 @@
 "use client";
 
-import { useActivities } from "@/lib/useData";
+import { useEffect, useState, useCallback } from "react";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   CheckCircle,
@@ -17,9 +17,9 @@ import {
   Clock,
   MoreHorizontal,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
 
 const activityIcons: Record<string, React.ReactNode> = {
   task_completed: <CheckCircle className="w-4 h-4" />,
@@ -53,6 +53,16 @@ const activityColors: Record<string, string> = {
   system_event: "text-red-400 bg-red-400/10",
 };
 
+interface Activity {
+  _id: string;
+  type: string;
+  description: string;
+  timestamp: number;
+  agent: string;
+  source?: string;
+  metadata?: Record<string, any>;
+}
+
 interface ActivityFeedProps {
   limit?: number;
   showHeader?: boolean;
@@ -60,22 +70,44 @@ interface ActivityFeedProps {
 }
 
 export function ActivityFeed({ limit = 50, showHeader = true, className }: ActivityFeedProps) {
-  const { activities, loading } = useActivities(limit);
-  const [mounted, setMounted] = useState(false);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isLive, setIsLive] = useState(true);
 
-  useEffect(() => {
-    setMounted(true);
+  const fetchActivities = useCallback(async () => {
+    try {
+      const response = await fetch('/api/activities');
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data && Array.isArray(data)) {
+          setActivities(data);
+          setLastUpdated(new Date());
+        }
+      }
+    } catch (e) {
+      console.log('Failed to fetch activities:', e);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // Auto-refresh every 5 seconds
+  // Initial fetch
   useEffect(() => {
+    fetchActivities();
+  }, [fetchActivities]);
+
+  // Auto-refresh every 10 seconds (silently, without page reload)
+  useEffect(() => {
+    if (!isLive) return;
+    
     const interval = setInterval(() => {
-      window.location.reload();
-    }, 5000);
+      fetchActivities();
+    }, 10000);
+    
     return () => clearInterval(interval);
-  }, []);
-
-  if (!mounted) return null;
+  }, [fetchActivities, isLive]);
 
   // Group activities by date
   const groupedActivities = activities.reduce((groups, activity) => {
@@ -83,7 +115,7 @@ export function ActivityFeed({ limit = 50, showHeader = true, className }: Activ
     if (!groups[date]) groups[date] = [];
     groups[date].push(activity);
     return groups;
-  }, {} as Record<string, typeof activities>);
+  }, {} as Record<string, Activity[]>);
 
   const sortedDates = Object.keys(groupedActivities).sort((a, b) => 
     new Date(b).getTime() - new Date(a).getTime()
@@ -97,23 +129,50 @@ export function ActivityFeed({ limit = 50, showHeader = true, className }: Activ
             <Clock className="w-5 h-5 text-mission-accent" />
             <h2 className="font-semibold text-mission-text">Activity Feed</h2>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs text-mission-muted">Live</span>
+          <div className="flex items-center gap-3">
+            {lastUpdated && (
+              <span className="text-xs text-mission-muted">
+                Updated {formatDistanceToNow(lastUpdated, { addSuffix: true })}
+              </span>
+            )}
+            <button
+              onClick={() => setIsLive(!isLive)}
+              className={cn(
+                "flex items-center gap-1.5 px-2 py-1 rounded-full text-xs transition-colors",
+                isLive ? "bg-emerald-500/20 text-emerald-400" : "bg-mission-border/30 text-mission-muted"
+              )}
+            >
+              <span className={cn("w-1.5 h-1.5 rounded-full", isLive && "animate-pulse bg-emerald-500")} />
+              {isLive ? "Live" : "Paused"}
+            </button>
+            <button
+              onClick={fetchActivities}
+              disabled={loading}
+              className="p-1.5 hover:bg-mission-border/30 rounded-lg transition-colors"
+              title="Refresh now"
+            >
+              <RefreshCw className={cn("w-4 h-4 text-mission-muted", loading && "animate-spin")} />
+            </button>
           </div>
         </div>
       )}
 
       <div className="max-h-[600px] overflow-y-auto">
-        {loading ? (
+        {loading && activities.length === 0 ? (
           <div className="p-8 text-center text-mission-muted">
             <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin" />
             <p>Loading activities...</p>
           </div>
-        ) : sortedDates.length === 0 ? (
+        ) : activities.length === 0 ? (
           <div className="p-8 text-center text-mission-muted">
             <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p>No activities yet</p>
+            <button
+              onClick={fetchActivities}
+              className="mt-4 px-4 py-2 bg-mission-accent text-mission-bg rounded-lg text-sm hover:bg-cyan-400 transition-colors"
+            >
+              Refresh
+            </button>
           </div>
         ) : (
           sortedDates.map((date) => (
@@ -138,7 +197,7 @@ export function ActivityFeed({ limit = 50, showHeader = true, className }: Activ
                         <p className="text-sm text-mission-text leading-relaxed">
                           {activity.description}
                         </p>
-                        <div className="flex items-center gap-3 mt-1">
+                        <div className="flex items-center gap-3 mt-1 flex-wrap">
                           <span className="text-xs text-mission-muted">
                             {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
                           </span>
@@ -154,6 +213,12 @@ export function ActivityFeed({ limit = 50, showHeader = true, className }: Activ
                             </span>
                           )}
                         </div>
+                        {activity.metadata && Object.keys(activity.metadata).length > 0 && (
+                          <div className="mt-2 p-2 rounded bg-mission-bg/50 text-xs text-mission-muted font-mono overflow-x-auto">
+                            {JSON.stringify(activity.metadata, null, 2).slice(0, 200)}
+                            {JSON.stringify(activity.metadata).length > 200 && "..."}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
