@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const CONVEX_URL = 'https://flexible-dolphin-499.convex.cloud';
+const CONVEX_URL = process.env.CONVEX_URL || process.env.NEXT_PUBLIC_CONVEX_URL || 'https://flexible-dolphin-499.convex.cloud';
 
 export async function GET() {
   try {
@@ -14,6 +14,8 @@ export async function GET() {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Convex error:', response.status, errorText);
       throw new Error(`Convex error: ${response.status}`);
     }
 

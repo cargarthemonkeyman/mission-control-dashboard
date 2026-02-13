@@ -8,8 +8,8 @@ export async function GET() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        path: 'activities:getAll',
-        args: { limit: 100 }
+        path: 'scheduledTasks:getUpcoming',
+        args: { limit: 10 }
       })
     });
 
@@ -22,8 +22,8 @@ export async function GET() {
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error fetching activities:', error);
-    return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
+    console.error('Error fetching tasks:', error);
+    return NextResponse.json({ value: [] }, { status: 500 });
   }
 }
 
@@ -35,12 +35,13 @@ export async function POST(request: Request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        path: 'activities:create',
+        path: 'scheduledTasks:create',
         args: {
-          type: body.type || 'agent_action',
+          title: body.title,
           description: body.description,
-          agent: body.agent || 'Ray',
-          source: body.source || 'api',
+          scheduledFor: body.scheduledFor || Date.now() + 3600000,
+          duration: body.duration,
+          recurrence: body.recurrence,
           metadata: body.metadata || {}
         }
       })
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error creating activity:', error);
+    console.error('Error creating task:', error);
     return NextResponse.json({ error: 'Failed to create' }, { status: 500 });
   }
 }

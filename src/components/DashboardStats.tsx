@@ -11,6 +11,13 @@ interface Stats {
   byType: Record<string, number>;
 }
 
+interface Task {
+  _id: string;
+  title: string;
+  status: string;
+  scheduledFor: number;
+}
+
 export function DashboardStats() {
   const [stats, setStats] = useState<Stats>({
     total: 0,
@@ -18,30 +25,36 @@ export function DashboardStats() {
     last7d: 0,
     byType: {},
   });
+  const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/stats');
-        
-        if (response.ok) {
-          const result = await response.json();
-          // Convex API returns {status, value} structure
+        // Fetch stats
+        const statsResponse = await fetch('/api/stats');
+        if (statsResponse.ok) {
+          const result = await statsResponse.json();
           const data = result.value || result;
-          if (data) {
-            setStats(data);
-          }
+          if (data) setStats(data);
+        }
+
+        // Fetch upcoming tasks
+        const tasksResponse = await fetch('/api/tasks');
+        if (tasksResponse.ok) {
+          const result = await tasksResponse.json();
+          const tasks = result.value || result || [];
+          setUpcomingTasks(Array.isArray(tasks) ? tasks : []);
         }
       } catch (e) {
-        console.log('Failed to fetch stats:', e);
+        console.log('Failed to fetch data:', e);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchStats();
-    const interval = setInterval(fetchStats, 10000);
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -56,6 +69,8 @@ export function DashboardStats() {
       </div>
     );
   }
+
+  const pendingTasks = upcomingTasks.filter(t => t.status === 'pending').length;
 
   const cards = [
     {
@@ -76,7 +91,7 @@ export function DashboardStats() {
     },
     {
       title: "Upcoming Tasks",
-      value: 0, // TODO: Add tasks API
+      value: pendingTasks,
       change: "scheduled",
       icon: Calendar,
       color: "text-emerald-400",
@@ -84,7 +99,7 @@ export function DashboardStats() {
     },
     {
       title: "Completed",
-      value: stats.byType?.task_completed || 0,
+      value: Math.round(stats.byType?.task_completed || 0),
       change: "tasks done",
       icon: CheckCircle,
       color: "text-amber-400",
