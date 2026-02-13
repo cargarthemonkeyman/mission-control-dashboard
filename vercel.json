@@ -2,5 +2,11 @@
   "buildCommand": "next build",
   "devCommand": "next dev",
   "installCommand": "npm install",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "env": {
+    "CONVEX_URL": "https://flexible-dolphin-499.convex.cloud",
+    "NEXT_PUBLIC_CONVEX_URL": "https://flexible-dolphin-499.convex.cloud",
+    "NEXT_PUBLIC_CONVEX_SITE_URL": "https://flexible-dolphin-499.convex.site",
+    "MISSION_CONTROL_URL": "https://mission-control-dashboard.vercel.app"
+  }
 }
