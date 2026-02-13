@@ -2,8 +2,5 @@
   "buildCommand": "next build",
   "devCommand": "next dev",
   "installCommand": "npm install",
-  "framework": "nextjs",
-  "env": {
-    "NEXT_PUBLIC_CONVEX_URL": "@next_public_convex_url"
-  }
+  "framework": "nextjs"
 }

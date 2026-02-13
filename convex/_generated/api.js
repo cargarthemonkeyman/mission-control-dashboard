@@ -4,31 +4,13 @@
  * This file is generated and should not be manually edited.
  */
 
-import { anyApi } from "convex/server";
-
-export const api = {
-  activities: {
-    getAll: anyApi,
-    getRecent: anyApi,
-    getByType: anyApi,
-    create: anyApi,
-    remove: anyApi,
-    getStats: anyApi,
-  },
-  scheduledTasks: {
-    getAll: anyApi,
-    getWeekView: anyApi,
-    getByDateRange: anyApi,
-    getUpcoming: anyApi,
-    create: anyApi,
-    update: anyApi,
-    markComplete: anyApi,
-    markInProgress: anyApi,
-    cancel: anyApi,
-    remove: anyApi,
-  },
-  search: {
-    globalSearch: anyApi,
-    getRecentItems: anyApi,
-  },
+const createApiProxy = () => {
+  return new Proxy({}, {
+    get: (target, prop) => {
+      if (prop === '__esModule') return true;
+      return createApiProxy();
+    }
+  });
 };
+
+export const api = createApiProxy();
