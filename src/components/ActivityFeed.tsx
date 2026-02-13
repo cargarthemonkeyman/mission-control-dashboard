@@ -1,6 +1,7 @@
 "use client";
 
-import { useActivities } from "@/lib/demo-data";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   CheckCircle,
@@ -60,17 +61,25 @@ interface ActivityFeedProps {
 }
 
 export function ActivityFeed({ limit = 50, showHeader = true, className }: ActivityFeedProps) {
-  const { activities, loading } = useActivities(limit);
+  const activities = useQuery(api.activities.getAll, { limit });
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Auto-refresh every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      window.location.reload();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   if (!mounted) return null;
 
   // Group activities by date
-  const groupedActivities = activities.reduce((groups, activity) => {
+  const groupedActivities = (activities || []).reduce((groups, activity) => {
     const date = format(activity.timestamp, "yyyy-MM-dd");
     if (!groups[date]) groups[date] = [];
     groups[date].push(activity);
@@ -97,7 +106,7 @@ export function ActivityFeed({ limit = 50, showHeader = true, className }: Activ
       )}
 
       <div className="max-h-[600px] overflow-y-auto">
-        {loading ? (
+        {activities === undefined ? (
           <div className="p-8 text-center text-mission-muted">
             <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin" />
             <p>Loading activities...</p>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useScheduledTasks } from "@/lib/demo-data";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import {
   format,
   startOfWeek,
@@ -25,7 +26,7 @@ interface CalendarViewProps {
 
 export function CalendarView({ className, compact = false }: CalendarViewProps) {
   const [currentWeek, setCurrentWeek] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const { tasks, loading } = useScheduledTasks();
+  const tasks = useQuery(api.scheduledTasks.getWeekView, { weekStart: currentWeek.getTime() });
 
   const weekDays = useMemo(() => {
     return DAYS.map((_, index) => addDays(currentWeek, index));
@@ -45,7 +46,7 @@ export function CalendarView({ className, compact = false }: CalendarViewProps) 
   };
 
   const getTasksForDay = (day: Date) => {
-    return tasks.filter((task) => isSameDay(new Date(task.scheduledFor), day));
+    return (tasks || []).filter((task) => isSameDay(new Date(task.scheduledFor), day));
   };
 
   const statusIcons = {
@@ -61,14 +62,6 @@ export function CalendarView({ className, compact = false }: CalendarViewProps) 
     completed: "border-l-emerald-400 bg-emerald-400/10",
     cancelled: "border-l-red-400 bg-red-400/10",
   };
-
-  if (loading) {
-    return (
-      <div className={cn("bg-mission-surface rounded-lg border border-mission-border p-8 flex items-center justify-center", className)}>
-        <Loader2 className="w-8 h-8 animate-spin text-mission-accent" />
-      </div>
-    );
-  }
 
   if (compact) {
     return (
