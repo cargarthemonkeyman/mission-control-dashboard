@@ -10,7 +10,7 @@
     "convex:dev": "convex dev"
   },
   "dependencies": {
-    "next": "14.2.0",
+    "next": "14.2.20",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "convex": "^1.15.0",

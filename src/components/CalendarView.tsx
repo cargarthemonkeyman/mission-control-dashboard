@@ -1,7 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { useScheduledTasks } from "@/lib/demo-data";
 import {
   format,
   startOfWeek,
@@ -9,11 +8,10 @@ import {
   isSameDay,
   startOfDay,
   addHours,
-  isWithinInterval,
   getHours,
   getMinutes,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus, Clock, CheckCircle, Circle, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Clock, CheckCircle, Circle, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
 
@@ -27,7 +25,7 @@ interface CalendarViewProps {
 
 export function CalendarView({ className, compact = false }: CalendarViewProps) {
   const [currentWeek, setCurrentWeek] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const tasks = useQuery(api.scheduledTasks.getWeekView, { weekStart: currentWeek.getTime() });
+  const { tasks, loading } = useScheduledTasks();
 
   const weekDays = useMemo(() => {
     return DAYS.map((_, index) => addDays(currentWeek, index));
@@ -41,13 +39,13 @@ export function CalendarView({ className, compact = false }: CalendarViewProps) 
     const date = new Date(task.scheduledFor);
     const hour = getHours(date);
     const minute = getMinutes(date);
-    const top = (hour + minute / 60) * 60; // 60px per hour
+    const top = (hour + minute / 60) * 60;
     const height = ((task.duration || 60) / 60) * 60;
     return { top, height };
   };
 
   const getTasksForDay = (day: Date) => {
-    return (tasks || []).filter((task) => isSameDay(new Date(task.scheduledFor), day));
+    return tasks.filter((task) => isSameDay(new Date(task.scheduledFor), day));
   };
 
   const statusIcons = {
@@ -63,6 +61,14 @@ export function CalendarView({ className, compact = false }: CalendarViewProps) 
     completed: "border-l-emerald-400 bg-emerald-400/10",
     cancelled: "border-l-red-400 bg-red-400/10",
   };
+
+  if (loading) {
+    return (
+      <div className={cn("bg-mission-surface rounded-lg border border-mission-border p-8 flex items-center justify-center", className)}>
+        <Loader2 className="w-8 h-8 animate-spin text-mission-accent" />
+      </div>
+    );
+  }
 
   if (compact) {
     return (
@@ -221,7 +227,6 @@ export function CalendarView({ className, compact = false }: CalendarViewProps) 
                     isToday && "bg-mission-accent/5"
                   )}
                 >
-                  {/* Hour grid lines */}
                   {HOURS.map((hour) => (
                     <div
                       key={hour}
@@ -229,7 +234,6 @@ export function CalendarView({ className, compact = false }: CalendarViewProps) 
                     />
                   ))}
 
-                  {/* Tasks */}
                   {dayTasks.map((task) => {
                     const { top, height } = getTaskPosition(task);
                     return (

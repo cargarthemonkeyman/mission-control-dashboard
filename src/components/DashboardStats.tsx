@@ -1,13 +1,24 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { Activity, Calendar, CheckCircle, Clock } from "lucide-react";
+import { useActivityStats, useScheduledTasks } from "@/lib/demo-data";
+import { Activity, Calendar, CheckCircle, Clock, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function DashboardStats() {
-  const stats = useQuery(api.activities.getStats);
-  const upcomingTasks = useQuery(api.scheduledTasks.getUpcoming, { limit: 5 });
+  const { stats, loading: statsLoading } = useActivityStats();
+  const { tasks, loading: tasksLoading } = useScheduledTasks();
+
+  if (statsLoading || tasksLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-mission-surface rounded-lg border border-mission-border p-4 flex items-center justify-center h-24">
+            <Loader2 className="w-6 h-6 animate-spin text-mission-accent" />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   const cards = [
     {
@@ -28,7 +39,7 @@ export function DashboardStats() {
     },
     {
       title: "Upcoming Tasks",
-      value: upcomingTasks?.length ?? 0,
+      value: tasks?.length ?? 0,
       change: "scheduled",
       icon: Calendar,
       color: "text-emerald-400",

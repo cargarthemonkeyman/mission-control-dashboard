@@ -1,7 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { useActivities } from "@/lib/demo-data";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   CheckCircle,
@@ -17,6 +16,7 @@ import {
   Trash,
   Clock,
   MoreHorizontal,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -60,25 +60,17 @@ interface ActivityFeedProps {
 }
 
 export function ActivityFeed({ limit = 50, showHeader = true, className }: ActivityFeedProps) {
-  const activities = useQuery(api.activities.getAll, { limit });
+  const { activities, loading } = useActivities(limit);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Auto-refresh every 5 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      window.location.reload();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
   if (!mounted) return null;
 
   // Group activities by date
-  const groupedActivities = (activities || []).reduce((groups, activity) => {
+  const groupedActivities = activities.reduce((groups, activity) => {
     const date = format(activity.timestamp, "yyyy-MM-dd");
     if (!groups[date]) groups[date] = [];
     groups[date].push(activity);
@@ -105,7 +97,12 @@ export function ActivityFeed({ limit = 50, showHeader = true, className }: Activ
       )}
 
       <div className="max-h-[600px] overflow-y-auto">
-        {sortedDates.length === 0 ? (
+        {loading ? (
+          <div className="p-8 text-center text-mission-muted">
+            <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin" />
+            <p>Loading activities...</p>
+          </div>
+        ) : sortedDates.length === 0 ? (
           <div className="p-8 text-center text-mission-muted">
             <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p>No activities yet</p>
@@ -120,7 +117,7 @@ export function ActivityFeed({ limit = 50, showHeader = true, className }: Activ
                 {groupedActivities[date]?.map((activity) => (
                   <div
                     key={activity._id}
-                    className="px-4 py-3 hover:bg-mission-bg/30 transition-colors animate-fade-in"
+                    className="px-4 py-3 hover:bg-mission-bg/30 transition-colors"
                   >
                     <div className="flex items-start gap-3">
                       <div className={cn(
